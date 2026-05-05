@@ -312,11 +312,11 @@ def animate_evolution(history, N, e, interval=200):
         "deeppink", # 21
     ]
 
-    cmap = ListedColormap(colors[:e+1])
+    cmap = ListedColormap(colors[:N])
 
     fig, ax = plt.subplots()
 
-    im = ax.imshow(history[0], cmap=cmap, vmin=0, vmax=e)
+    im = ax.imshow(history[0], cmap=cmap, vmin=0, vmax=N-1)
 
     n = history.shape[1]
 
