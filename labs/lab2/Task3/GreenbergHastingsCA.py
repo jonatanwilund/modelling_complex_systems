@@ -10,6 +10,52 @@ def save_grid(grid, filename):
 def load_grid(filename):
     return np.loadtxt(filename, dtype=np.uint8)
 
+def find_period(grid, e, max_steps=10000): 
+    """
+    This function finds the transient time and eventual period of a GHCA orbit. 
+
+    -----
+    Args: 
+    -----
+
+    grid: np.ndarray. 
+    Initial configuration grid. 
+
+    e: int. 
+    Excitation parameter. 
+
+    max_steps: int. 
+    Max number of evolutions to detect period in. 
+
+    --------
+    Returns: 
+    --------
+
+    transient: int. 
+    Number of steps before the repeating cycle starts. 
+
+    period: int. 
+    Length of the repeating cycle. 
+    """
+
+    seen = {}
+
+    current = grid.astype(np.uint8).copy()
+
+    for t in range(max_steps + 1): 
+        key = current.tobytes()
+
+        if key in seen: # As soon as we detect Xt = Xs
+            transient = seen[key] # The transient is s
+            period = t - seen[key] # And the period would be t-s
+            return transient, period
+    
+        seen[key] = t
+        current = GHCA_step(current, e)
+
+    # Using runtimeerror for smoother experimenting later on
+    raise RuntimeError("No period found within max_steps.") 
+
 
 def GHCA_step(grid, e): 
     """
@@ -262,7 +308,7 @@ def animate_evolution(history, e, interval=200):
     if n <= 200: 
         ax.set_xticks(np.arange(-0.5, n, 1), minor=True)
         ax.set_yticks(np.arange(-0.5, n, 1), minor=True)
-        ax.grid(which="minor", color="black", linestyle='-', linewidth=0.5)
+        ax.grid(which="minor", color="black", linestyle='-', linewidth=0.1)
 
     ax.set_xticks([])
     ax.set_yticks([])
@@ -276,32 +322,50 @@ def animate_evolution(history, e, interval=200):
         update, 
         frames=history.shape[0],
         interval=interval,
-        blit=True
+        blit=False
     )
 
     plt.show()
 
 
 if __name__ == "__main__": 
-    n = 201
-    e = 7
+    n = 100
+    e = 10
     k = 200
+    max_steps = 10000
+    seed = 42
 
-    random_initial = random_grid(n, e)
-    #broken_circle = initconfigs.broken_circle_grid(n, e)
-    history = run_GHCA(random_initial, e, k)
-    #animate_evolution(history, e)
 
-    save_grid(history[-1], f'{k}th_config_{n}_{e}')
+    random_initial = random_grid(n, e, seed=seed)
+    broken_circle = initconfigs.broken_circle_grid(n, e)
+    diagwave_initial = initconfigs.diagonal_wave_grid(n, e)
+    multseed_initial = initconfigs.multiple_seed_grid(n, e)
+    ringtail_initial = initconfigs.ring_with_tail_grid(n,e)
+    collisionwaves_initial = initconfigs.collision_waves_grid(n,e)
+    concrings_initial = initconfigs.concentric_rings_grid(n,e)
+    funlarge_initial = initconfigs.fun_large_grid(n,e)
+    
+    history = run_GHCA(funlarge_initial, e, k)
 
-    static_plot_grid(history[-1], e, savefigformat='png',)
+    animate_evolution(history, e)
+
+    #save_grid(history[-1], f'{k}th_config_{n}_{e}')
+
+    #static_plot_grid(history[-1], e, savefigformat='png')
+
+
+    """
+    -----------------PERIOD-FINDING--------------: 
+    transient, period = find_period(random_initial, e, max_steps=max_steps)
+    print("Random initial condition:")
+    print("------------------------")
+    print(f"n = {n}")   
+    print(f"e = {e}")
+    print(f"seed = {seed}")
+    print(f"transient time = {transient}")
+    print(f"period = {period}")
+    """
+
+
+
    
-
-    """
-    We have to: S
-    save last grid to a file ***DONE
-    plot last grid: 
-
-    b) write code that detects periodicity
-    c) find initial condition that yields period m >= 2
-    """
