@@ -2,6 +2,14 @@ import numpy as np
 import matplotlib.pyplot as plt 
 from matplotlib.colors import ListedColormap
 import matplotlib.animation as animation
+import initconfigs
+
+def save_grid(grid, filename):
+    np.savetxt(filename, grid, fmt="%d")
+
+def load_grid(filename):
+    return np.loadtxt(filename, dtype=np.uint8)
+
 
 def GHCA_step(grid, e): 
     """
@@ -124,7 +132,7 @@ def run_GHCA(grid, e, k):
 
     return history
 
-def static_plot_grid(grid, e): 
+def static_plot_grid(grid, e, savefigformat=''): 
     """
     Plots one single GHCA configuration. 
 
@@ -133,8 +141,15 @@ def static_plot_grid(grid, e):
     -----
 
     grid: np.ndarray.
+    Grid to be plotted.
 
     e: int
+    Excitation parameter.
+
+    savefigformat: String. 
+    Optional argument, if added the function saves the plot in the specified file extension format. 
+    Defaults to empty string and does thereby not save the plot. 
+
 
     --------
     Returns:
@@ -145,13 +160,27 @@ def static_plot_grid(grid, e):
     """
 
     colors = [
-        "white",  # 0 = resting
-        "red",    # 1 = excited
-        "orange", # 2
-        "yellow", # 3
-        "green",  # 4
-        "blue",   # 5
-        "purple"  # 6
+        "white",    # 0 = resting
+        "red",      # 1 = excited
+        "orangered",
+        "darkorange", 
+        "orange", 
+        "gold",
+        "yellow",
+        "greenyellow",
+        "chartreuse", 
+        "lawngreen",
+        "forestgreen",
+        "green",  
+        "darkcyan",
+        "blue",   
+        "slateblue", 
+        "blueviolet",
+        "darkviolet",
+        "purple", 
+        "mediumvioletred", 
+        "magenta", 
+        "deeppink", # 21
     ]
 
     cmap = ListedColormap(colors[:e+1])
@@ -160,13 +189,17 @@ def static_plot_grid(grid, e):
 
     im = ax.imshow(grid, cmap=cmap, vmin=0, vmax=e)
     n = grid.shape[0]
-    ax.set_xticks(np.arange(-0.5, n, 1), minor=True)
-    ax.set_yticks(np.arange(-0.5, n, 1), minor=True)
-    ax.grid(which="minor", color="black", linestyle="-", linewidth=0.5)
+
+    if n <= 200: 
+        ax.set_xticks(np.arange(-0.5, n, 1), minor=True)
+        ax.set_yticks(np.arange(-0.5, n, 1), minor=True)
+        ax.grid(which="minor", color="black", linestyle="-", linewidth=0.1)
 
     ax.set_xticks([])
     ax.set_yticks([])
 
+    if savefigformat: 
+        plt.savefig(f'plot_{k}th_config_{n}_{e}.{savefigformat}')
     plt.show()
 
 def animate_evolution(history, e, interval=200): 
@@ -225,9 +258,11 @@ def animate_evolution(history, e, interval=200):
     im = ax.imshow(history[0], cmap=cmap, vmin=0, vmax=e)
 
     n = history.shape[1]
-    ax.set_xticks(np.arange(-0.5, n, 1), minor=True)
-    ax.set_yticks(np.arange(-0.5, n, 1), minor=True)
-    ax.grid(which="minor", color="black", linestyle='-', linewidth=0.5)
+
+    if n <= 200: 
+        ax.set_xticks(np.arange(-0.5, n, 1), minor=True)
+        ax.set_yticks(np.arange(-0.5, n, 1), minor=True)
+        ax.grid(which="minor", color="black", linestyle='-', linewidth=0.5)
 
     ax.set_xticks([])
     ax.set_yticks([])
@@ -248,10 +283,25 @@ def animate_evolution(history, e, interval=200):
 
 
 if __name__ == "__main__": 
-    n = 100
-    e = 3
+    n = 201
+    e = 7
     k = 200
 
-    initial = random_grid(n, e)
-    history = run_GHCA(initial, e, k)
-    animate_evolution(history, e)
+    random_initial = random_grid(n, e)
+    #broken_circle = initconfigs.broken_circle_grid(n, e)
+    history = run_GHCA(random_initial, e, k)
+    #animate_evolution(history, e)
+
+    save_grid(history[-1], f'{k}th_config_{n}_{e}')
+
+    static_plot_grid(history[-1], e, savefigformat='png',)
+   
+
+    """
+    We have to: S
+    save last grid to a file ***DONE
+    plot last grid: 
+
+    b) write code that detects periodicity
+    c) find initial condition that yields period m >= 2
+    """
