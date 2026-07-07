@@ -55,7 +55,7 @@ def main():
 
     fig.supylabel("y")
     fig.suptitle("Phase Portrait of Coupled Logistic Maps")
-    fig.tight_layout(rect=[0, 0, 1, 0.95])
+    fig.tight_layout(rect=(0, 0, 1, 0.95))
     plt.show()
 
 

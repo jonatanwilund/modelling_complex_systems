@@ -306,9 +306,7 @@ def manualBoundaryExamples():
 
 def buildRipsComplex(points, maxEdgeLength, maxDimension):
     if gd is None:
-        raise ImportError(
-            "GUDHI is required for persistent homology computations."
-        )
+        raise ImportError("GUDHI is required for persistent homology computations.")
     rips = gd.RipsComplex(points=points, max_edge_length=maxEdgeLength)
     simplexTree = rips.create_simplex_tree(max_dimension=maxDimension)
     simplexTree.compute_persistence(homology_coeff_field=2)

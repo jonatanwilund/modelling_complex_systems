@@ -1,9 +1,9 @@
 import numpy as np
 
 
-def _clip_state(value, e):
-    """Return an integer state clipped to the allowed range 0, ..., e."""
-    return np.uint8(np.clip(value, 0, e))
+def _clip_state(value, N):
+    """Return an integer state clipped to the allowed range 0, ..., N-1."""
+    return np.uint8(np.clip(value, 0, N - 1))
 
 
 def _coordinate_grid(n):
@@ -11,7 +11,7 @@ def _coordinate_grid(n):
     return np.indices((n, n))
 
 
-def broken_circle_grid(n, e, R=None, thickness=1.5, gap_angle=np.pi / 4):
+def broken_circle_grid(n, N, R=None, thickness=1.5, gap_angle=np.pi / 4):
     """
     Create an initial condition with a broken circular wavefront.
 
@@ -20,8 +20,8 @@ def broken_circle_grid(n, e, R=None, thickness=1.5, gap_angle=np.pi / 4):
     n : int
         Grid size (n x n).
 
-    e : int
-        Excitation parameter. Possible states are 0, 1, ..., e.
+    N : int
+        Size of state space
 
     R : float or None
         Radius of the circle. If None, set automatically.
@@ -62,9 +62,9 @@ def broken_circle_grid(n, e, R=None, thickness=1.5, gap_angle=np.pi / 4):
     return grid
 
 
-def single_seed_grid(n, e, center=None):
+def single_seed_grid(n, N, center=None):
     """
-    One excited cell in an otherwise resting grid.
+    One excited state 1 cell in an otherwise resting grid.
     Useful for observing radial wave propagation.
     """
 
@@ -79,9 +79,9 @@ def single_seed_grid(n, e, center=None):
     return grid
 
 
-def multiple_seed_grid(n, e, centers=None, radius=2):
+def multiple_seed_grid(n, N, centers=None, radius=2):
     """
-    Several small excited disks in an otherwise resting grid.
+    Several small excited state 1 disks in an otherwise resting grid.
     Useful for observing several wavefronts and collisions.
     """
 
@@ -104,9 +104,9 @@ def multiple_seed_grid(n, e, centers=None, radius=2):
     return grid
 
 
-def planar_wave_grid(n, e, width=3, direction="vertical", position=None):
+def planar_wave_grid(n, N, width=3, direction="vertical", position=None):
     """
-    A straight excited line.
+    A straight excited state 1 line.
     direction='vertical' gives a vertical line; direction='horizontal' gives a horizontal line.
     """
 
@@ -129,7 +129,7 @@ def planar_wave_grid(n, e, width=3, direction="vertical", position=None):
     return grid
 
 
-def diagonal_wave_grid(n, e, width=3, offset=0):
+def diagonal_wave_grid(n, N, width=3, offset=0):
     """
     A diagonal excited wavefront of approximate form y - x = offset.
     """
@@ -143,7 +143,7 @@ def diagonal_wave_grid(n, e, width=3, offset=0):
     return grid
 
 
-def diagonal_wave_with_tail_grid(n, e, width=3, offset=0, tail_spacing=8):
+def diagonal_wave_with_tail_grid(n, N, width=3, offset=0, tail_spacing=8):
     """
     A diagonal wavefront with refractory bands behind it.
     This often gives a more visually interpretable traveling front than a single line.
@@ -155,11 +155,11 @@ def diagonal_wave_with_tail_grid(n, e, width=3, offset=0, tail_spacing=8):
     front = np.abs(y - x - offset) <= width
     grid[front] = 1
 
-    if e >= 2:
+    if N >= 2:
         tail_states = [
-            _clip_state(round(e / 3), e),
-            _clip_state(round(2 * e / 3), e),
-            _clip_state(e, e),
+            _clip_state(round(N / 3), N),
+            _clip_state(round(2 * N / 3), N),
+            _clip_state(N, N),
         ]
 
         for layer, state in enumerate(tail_states, start=1):
@@ -169,7 +169,7 @@ def diagonal_wave_with_tail_grid(n, e, width=3, offset=0, tail_spacing=8):
     return grid
 
 
-def ring_with_tail_grid(n, e, center=None, R=None, thickness=2.0, tail_width=5.0):
+def ring_with_tail_grid(n, N, center=None, R=None, thickness=2.0, tail_width=5.0):
     """
     A circular excited wavefront with refractory rings behind it.
     The front is state 1; inner rings are recovery states.
@@ -190,11 +190,11 @@ def ring_with_tail_grid(n, e, center=None, R=None, thickness=2.0, tail_width=5.0
     front = (R - thickness <= r) & (r <= R + thickness)
     grid[front] = 1
 
-    if e >= 2:
+    if N >= 2:
         tail_states = [
-            _clip_state(round(e / 3), e),
-            _clip_state(round(2 * e / 3), e),
-            _clip_state(e, e),
+            _clip_state(round(N / 3), N),
+            _clip_state(round(2 * N / 3), N),
+            _clip_state(N, N),
         ]
 
         for layer, state in enumerate(tail_states, start=1):
@@ -206,7 +206,7 @@ def ring_with_tail_grid(n, e, center=None, R=None, thickness=2.0, tail_width=5.0
     return grid
 
 
-def concentric_rings_grid(n, e, center=None, radii=None, thickness=2.0):
+def concentric_rings_grid(n, N, center=None, radii=None, thickness=2.0):
     """
     Several excited circular wavefronts.
     Useful for creating many wave collisions.
@@ -231,7 +231,7 @@ def concentric_rings_grid(n, e, center=None, radii=None, thickness=2.0):
     return grid
 
 
-def collision_waves_grid(n, e, width=3, margin=None):
+def collision_waves_grid(n, N, width=3, margin=None):
     """
     Two opposing planar waves placed on the left and right sides of the domain.
     Useful for demonstrating wave collision and annihilation.
@@ -253,7 +253,7 @@ def collision_waves_grid(n, e, width=3, margin=None):
     return grid
 
 
-def sparse_random_excitation_grid(n, e, probability=0.01, seed=42):
+def sparse_random_excitation_grid(n, N, probability=0.01, seed=42):
     """
     Mostly resting grid with sparse excited cells.
     This gives cleaner waves than a fully random grid over all states.
@@ -268,7 +268,7 @@ def sparse_random_excitation_grid(n, e, probability=0.01, seed=42):
     return grid
 
 
-def random_patch_grid(n, e, patch_radius=None, probability=0.35, seed=42, center=None):
+def random_patch_grid(n, N, patch_radius=None, probability=0.35, seed=42, center=None):
     """
     Random excited cells inside a circular patch, with the rest of the grid resting.
     Useful for generating asymmetric wave interactions near the center.
@@ -294,11 +294,11 @@ def random_patch_grid(n, e, patch_radius=None, probability=0.35, seed=42, center
     return grid
 
 
-def fun_large_grid(n, e, seed=12):
+def fun_large_grid(n, N, seed=12):
     """
     A visually rich large-domain initial condition.
     Combines circular fronts, refractory tails, a diagonal front, and sparse noise.
-    Suitable for larger n and larger e.
+    Suitable for larger n and larger N.
     """
 
     grid = np.zeros((n, n), dtype=np.uint8)
@@ -320,26 +320,26 @@ def fun_large_grid(n, e, seed=12):
 
         grid[(r > ring_radius) & (r < ring_radius + tail_width)] = 1
 
-        if e >= 2:
+        if N >= 2:
             grid[(r > ring_radius - tail_width) & (r <= ring_radius)] = _clip_state(
-                e // 3, e
+                N // 3, N
             )
             grid[
                 (r > ring_radius - 2 * tail_width) & (r <= ring_radius - tail_width)
-            ] = _clip_state(2 * e // 3, e)
+            ] = _clip_state(2 * N // 3, N)
             grid[
                 (r > ring_radius - 3 * tail_width) & (r <= ring_radius - 2 * tail_width)
-            ] = _clip_state(e, e)
+            ] = _clip_state(N, N)
 
     diagonal_width = max(2, n // 350)
     diagonal = np.abs(y - x) <= diagonal_width
     grid[diagonal] = 1
 
-    if e >= 2:
+    if N >= 2:
         spacing = max(6, n // 125)
-        grid[np.abs(y - x - spacing) <= diagonal_width] = _clip_state(e // 3, e)
-        grid[np.abs(y - x - 2 * spacing) <= diagonal_width] = _clip_state(2 * e // 3, e)
-        grid[np.abs(y - x - 3 * spacing) <= diagonal_width] = _clip_state(e, e)
+        grid[np.abs(y - x - spacing) <= diagonal_width] = _clip_state(N // 3, N)
+        grid[np.abs(y - x - 2 * spacing) <= diagonal_width] = _clip_state(2 * N // 3, N)
+        grid[np.abs(y - x - 3 * spacing) <= diagonal_width] = _clip_state(N, N)
 
     rng = np.random.default_rng(seed)
     noise = rng.random((n, n)) < 0.0008
