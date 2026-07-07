@@ -321,9 +321,15 @@ def fun_large_grid(n, e, seed=12):
         grid[(r > ring_radius) & (r < ring_radius + tail_width)] = 1
 
         if e >= 2:
-            grid[(r > ring_radius - tail_width) & (r <= ring_radius)] = _clip_state(e // 3, e)
-            grid[(r > ring_radius - 2 * tail_width) & (r <= ring_radius - tail_width)] = _clip_state(2 * e // 3, e)
-            grid[(r > ring_radius - 3 * tail_width) & (r <= ring_radius - 2 * tail_width)] = _clip_state(e, e)
+            grid[(r > ring_radius - tail_width) & (r <= ring_radius)] = _clip_state(
+                e // 3, e
+            )
+            grid[
+                (r > ring_radius - 2 * tail_width) & (r <= ring_radius - tail_width)
+            ] = _clip_state(2 * e // 3, e)
+            grid[
+                (r > ring_radius - 3 * tail_width) & (r <= ring_radius - 2 * tail_width)
+            ] = _clip_state(e, e)
 
     diagonal_width = max(2, n // 350)
     diagonal = np.abs(y - x) <= diagonal_width

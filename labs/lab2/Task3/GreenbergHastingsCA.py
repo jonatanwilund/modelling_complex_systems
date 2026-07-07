@@ -1,103 +1,106 @@
 import numpy as np
-import matplotlib.pyplot as plt 
+import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 import matplotlib.animation as animation
 import initconfigs
 
+
 def save_grid(grid, filename):
     np.savetxt(filename, grid, fmt="%d")
+
 
 def load_grid(filename):
     return np.loadtxt(filename, dtype=np.uint8)
 
-def find_period(grid, e, max_steps=10000): 
+
+def find_period(grid, e, max_steps=10000):
     """
-    This function finds the transient time and eventual period of a GHCA orbit. 
+    This function finds the transient time and eventual period of a GHCA orbit.
 
     -----
-    Args: 
+    Args:
     -----
 
-    grid: np.ndarray. 
-    Initial configuration grid. 
+    grid: np.ndarray.
+    Initial configuration grid.
 
-    e: int. 
-    Excitation parameter. 
+    e: int.
+    Excitation parameter.
 
-    max_steps: int. 
-    Max number of evolutions to detect period in. 
+    max_steps: int.
+    Max number of evolutions to detect period in.
 
     --------
-    Returns: 
+    Returns:
     --------
 
-    transient: int. 
-    Number of steps before the repeating cycle starts. 
+    transient: int.
+    Number of steps before the repeating cycle starts.
 
-    period: int. 
-    Length of the repeating cycle. 
+    period: int.
+    Length of the repeating cycle.
     """
 
     seen = {}
 
     current = grid.astype(np.uint8).copy()
 
-    for t in range(max_steps + 1): 
+    for t in range(max_steps + 1):
         key = current.tobytes()
 
-        if key in seen: # As soon as we detect Xt = Xs
-            transient = seen[key] # The transient is s
-            period = t - seen[key] # And the period would be t-s
+        if key in seen:  # As soon as we detect Xt = Xs
+            transient = seen[key]  # The transient is s
+            period = t - seen[key]  # And the period would be t-s
             return transient, period
-    
+
         seen[key] = t
         current = GHCA_step(current, e)
 
     # Using runtimeerror for smoother experimenting later on
-    raise RuntimeError("No period found within max_steps.") 
+    raise RuntimeError("No period found within max_steps.")
 
 
-def GHCA_step(grid, e): 
+def GHCA_step(grid, e):
     """
-    This function takes a grid and evolves it one generation. 
+    This function takes a grid and evolves it one generation.
 
     !!!It is in this function all the GHCA rules are applied!!!
 
-    Note: We use four nearest neighbors, i.e Von Neumann neighborhood. 
-    up down left right. 
+    Note: We use four nearest neighbors, i.e Von Neumann neighborhood.
+    up down left right.
 
     -----
     Args:
     -----
 
-    grid: np.ndarray. 
+    grid: np.ndarray.
     An nxn array with integer states 0 to e.
 
-    e: int. 
+    e: int.
     Excitation parameter.
 
     --------
     Returns:
     --------
 
-    next_grid: np.ndarray. 
+    next_grid: np.ndarray.
     The updated grid
     """
 
     # Boolean mask: True where excited
-    excited_mask = (grid == 1)
+    excited_mask = grid == 1
 
-    # Check whether each cell has an excited neighbor: 
+    # Check whether each cell has an excited neighbor:
     excited_neighbor = (
-        np.roll(excited_mask, shift=1, axis=0)  |   # top neighbor
-        np.roll(excited_mask, shift=-1, axis=0) |   # bottom neighbor
-        np.roll(excited_mask, shift=1, axis=1)  |   # left neighbor
-        np.roll(excited_mask, shift=-1, axis=1)     # right neighbor
+        np.roll(excited_mask, shift=1, axis=0)  # top neighbor
+        | np.roll(excited_mask, shift=-1, axis=0)  # bottom neighbor
+        | np.roll(excited_mask, shift=1, axis=1)  # left neighbor
+        | np.roll(excited_mask, shift=-1, axis=1)  # right neighbor
     )
 
     next_grid = np.zeros_like(grid, dtype=np.uint8)
 
-    # Rule 1: Resting cells become excited if at least one neighbor is excited. 
+    # Rule 1: Resting cells become excited if at least one neighbor is excited.
     # Puts on a mask that picks all cells that are resting AND that have excited neighbors:
     next_grid[(grid == 0) & excited_neighbor] = 1
 
@@ -106,84 +109,87 @@ def GHCA_step(grid, e):
     next_grid[(grid >= 1) & (grid < e)] = grid[(grid >= 1) & (grid < e)] + 1
 
     # Rule 3: Cells in state e return to resting 0.
-    # This is handled since the new grid was initialized to 0 everywhere! 
+    # This is handled since the new grid was initialized to 0 everywhere!
 
     return next_grid
 
-def random_grid(n, e, seed=42): 
+
+def random_grid(n, e, seed=42):
     """
     This function generates a random grid of size n x n to be used as an initial configuration for the GHCA.
 
     -----
-    Args: 
+    Args:
     -----
 
-    n: int. 
+    n: int.
     Grid size is n x n.
 
-    e: int. 
-    Excitation parameter. 
+    e: int.
+    Excitation parameter.
 
-    seed: int or None. 
+    seed: int or None.
     For reproducibility. Defaults to 42, of course.
 
     --------
     Returns:
     --------
 
-    rand_grid: np.ndarray. 
+    rand_grid: np.ndarray.
     An array of size n x n with random integer entries between 0 and e
 
     """
 
     RNG = np.random.default_rng(seed)
-    rand_grid = RNG.integers(low=0, high=e+1, size=(n,n), dtype=np.uint8)
+    rand_grid = RNG.integers(low=0, high=e + 1, size=(n, n), dtype=np.uint8)
 
     return rand_grid
 
-def run_GHCA(grid, e, k): 
+
+def run_GHCA(grid, e, k):
     """
     This function runs the actual evolution of the GHCA for k time steps or "generations".
 
     -----
-    Args: 
+    Args:
     -----
 
-    grid: np.ndarray. 
+    grid: np.ndarray.
     The initial n x n grid with random configuration
 
-    e: int. 
+    e: int.
     Excitation parameter
 
-    k: int. 
+    k: int.
     Number of generations
-    
+
     --------
     Returns:
     --------
 
-    history: np.ndarray. 
-    All k+1 grids, or generations. 
+    history: np.ndarray.
+    All k+1 grids, or generations.
 
     """
 
     current = grid.astype(np.uint8).copy()
     n = grid.shape[0]
-    history = np.zeros((k+1, n, n), dtype=np.uint8) 
+    history = np.zeros((k + 1, n, n), dtype=np.uint8)
     history[0] = current
 
-    for i in range(k): 
+    for i in range(k):
         current = GHCA_step(current, e)
-        history[i+1] = current
+        history[i + 1] = current
 
     return history
 
-def static_plot_grid(grid, e, savefigformat=''): 
+
+def static_plot_grid(grid, e, savefigformat=""):
     """
-    Plots one single GHCA configuration. 
+    Plots one single GHCA configuration.
 
     -----
-    Args: 
+    Args:
     -----
 
     grid: np.ndarray.
@@ -192,51 +198,51 @@ def static_plot_grid(grid, e, savefigformat=''):
     e: int
     Excitation parameter.
 
-    savefigformat: String. 
-    Optional argument, if added the function saves the plot in the specified file extension format. 
-    Defaults to empty string and does thereby not save the plot. 
+    savefigformat: String.
+    Optional argument, if added the function saves the plot in the specified file extension format.
+    Defaults to empty string and does thereby not save the plot.
 
 
     --------
     Returns:
     --------
 
-    None 
+    None
 
     """
 
     colors = [
-        "white",    # 0 = resting
-        "red",      # 1 = excited
+        "white",  # 0 = resting
+        "red",  # 1 = excited
         "orangered",
-        "darkorange", 
-        "orange", 
+        "darkorange",
+        "orange",
         "gold",
         "yellow",
         "greenyellow",
-        "chartreuse", 
+        "chartreuse",
         "lawngreen",
         "forestgreen",
-        "green",  
+        "green",
         "darkcyan",
-        "blue",   
-        "slateblue", 
+        "blue",
+        "slateblue",
         "blueviolet",
         "darkviolet",
-        "purple", 
-        "mediumvioletred", 
-        "magenta", 
-        "deeppink", # 21
+        "purple",
+        "mediumvioletred",
+        "magenta",
+        "deeppink",  # 21
     ]
 
-    cmap = ListedColormap(colors[:e+1])
+    cmap = ListedColormap(colors[: e + 1])
 
     fig, ax = plt.subplots()
 
     im = ax.imshow(grid, cmap=cmap, vmin=0, vmax=e)
     n = grid.shape[0]
 
-    if n <= 200: 
+    if n <= 200:
         ax.set_xticks(np.arange(-0.5, n, 1), minor=True)
         ax.set_yticks(np.arange(-0.5, n, 1), minor=True)
         ax.grid(which="minor", color="black", linestyle="-", linewidth=0.1)
@@ -244,25 +250,26 @@ def static_plot_grid(grid, e, savefigformat=''):
     ax.set_xticks([])
     ax.set_yticks([])
 
-    if savefigformat: 
-        plt.savefig(f'plot_{k}th_config_{n}_{e}.{savefigformat}')
+    if savefigformat:
+        plt.savefig(f"plot_{k}th_config_{n}_{e}.{savefigformat}")
     plt.show()
 
-def animate_evolution(history, e, interval=200): 
+
+def animate_evolution(history, e, interval=200):
     """
-    This function animates the GHCA evolution. 
+    This function animates the GHCA evolution.
 
     -----
-    Args: 
+    Args:
     -----
 
     history: np.ndarray.
-    An array containing all states of the GHCA. This is an array of grids. 
+    An array containing all states of the GHCA. This is an array of grids.
 
-    e: int. 
-    Excitation parameter. 
+    e: int.
+    Excitation parameter.
 
-    interval: int. 
+    interval: int.
     Time between frames in milliseconds.
 
     --------
@@ -274,30 +281,30 @@ def animate_evolution(history, e, interval=200):
     """
 
     colors = [
-        "white",    # 0 = resting
-        "red",      # 1 = excited
+        "white",  # 0 = resting
+        "red",  # 1 = excited
         "orangered",
-        "darkorange", 
-        "orange", 
+        "darkorange",
+        "orange",
         "gold",
         "yellow",
         "greenyellow",
-        "chartreuse", 
+        "chartreuse",
         "lawngreen",
         "forestgreen",
-        "green",  
+        "green",
         "darkcyan",
-        "blue",   
-        "slateblue", 
+        "blue",
+        "slateblue",
         "blueviolet",
         "darkviolet",
-        "purple", 
-        "mediumvioletred", 
-        "magenta", 
-        "deeppink", # 21
+        "purple",
+        "mediumvioletred",
+        "magenta",
+        "deeppink",  # 21
     ]
 
-    cmap = ListedColormap(colors[:e+1])
+    cmap = ListedColormap(colors[: e + 1])
 
     fig, ax = plt.subplots()
 
@@ -305,54 +312,48 @@ def animate_evolution(history, e, interval=200):
 
     n = history.shape[1]
 
-    if n <= 200: 
+    if n <= 200:
         ax.set_xticks(np.arange(-0.5, n, 1), minor=True)
         ax.set_yticks(np.arange(-0.5, n, 1), minor=True)
-        ax.grid(which="minor", color="black", linestyle='-', linewidth=0.1)
+        ax.grid(which="minor", color="black", linestyle="-", linewidth=0.1)
 
     ax.set_xticks([])
     ax.set_yticks([])
 
-    def update(frame): 
+    def update(frame):
         im.set_array(history[frame])
         return [im]
-    
+
     animatn = animation.FuncAnimation(
-        fig, 
-        update, 
-        frames=history.shape[0],
-        interval=interval,
-        blit=False
+        fig, update, frames=history.shape[0], interval=interval, blit=False
     )
 
     plt.show()
 
 
-if __name__ == "__main__": 
+if __name__ == "__main__":
     n = 100
     e = 10
     k = 200
     max_steps = 10000
     seed = 42
 
-
     random_initial = random_grid(n, e, seed=seed)
     broken_circle = initconfigs.broken_circle_grid(n, e)
     diagwave_initial = initconfigs.diagonal_wave_grid(n, e)
     multseed_initial = initconfigs.multiple_seed_grid(n, e)
-    ringtail_initial = initconfigs.ring_with_tail_grid(n,e)
-    collisionwaves_initial = initconfigs.collision_waves_grid(n,e)
-    concrings_initial = initconfigs.concentric_rings_grid(n,e)
-    funlarge_initial = initconfigs.fun_large_grid(n,e)
-    
+    ringtail_initial = initconfigs.ring_with_tail_grid(n, e)
+    collisionwaves_initial = initconfigs.collision_waves_grid(n, e)
+    concrings_initial = initconfigs.concentric_rings_grid(n, e)
+    funlarge_initial = initconfigs.fun_large_grid(n, e)
+
     history = run_GHCA(funlarge_initial, e, k)
 
     animate_evolution(history, e)
 
-    #save_grid(history[-1], f'{k}th_config_{n}_{e}')
+    # save_grid(history[-1], f'{k}th_config_{n}_{e}')
 
-    #static_plot_grid(history[-1], e, savefigformat='png')
-
+    # static_plot_grid(history[-1], e, savefigformat='png')
 
     """
     -----------------PERIOD-FINDING--------------: 
@@ -365,7 +366,3 @@ if __name__ == "__main__":
     print(f"transient time = {transient}")
     print(f"period = {period}")
     """
-
-
-
-   
